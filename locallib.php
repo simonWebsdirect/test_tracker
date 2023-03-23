@@ -1260,8 +1260,21 @@ function tracker_notify_raiserequest($issue, &$cm, $reason, $urgent, $tracker = 
 * @param object $cm
 * @param object $tracker
 */
+
 function tracker_notify_submission($issue, &$cm, $tracker = null) {
+    error_log("tracker_notify_submission: start");
+    error_log("issue: " . print_r($issue, true));
+    error_log("cm: " . print_r($cm, true));
+    
     global $COURSE, $SITE, $CFG, $USER, $DB;
+
+    $context = context_module::instance($cm->id);
+    $assignedto = $DB->get_record('user', array('id' => $issue->assignedto));
+
+    if (has_capability('mod/tracker:manage', $context, $assignedto->id)) {
+        // Agregar el profesor asignado a la lista de destinatarios
+        $managers[] = $assignedto;
+    }
 
     if (empty($tracker)) { // database access optimization in case we have a tracker from somewhere else
         $tracker = $DB->get_record('tracker', array('id' => $issue->trackerid));
@@ -1269,7 +1282,6 @@ function tracker_notify_submission($issue, &$cm, $tracker = null) {
 
     $fields = 'u.id,'.get_all_user_name_fields(true, 'u').',lang,email,emailstop,mailformat,mnethostid';
 
-    $context = context_module::instance($cm->id);
     $managers = get_users_by_capability($context, 'mod/tracker:manage', $fields, 'lastname', '', '', '', '', true);
 
     $by = $DB->get_record('user', array('id' => $issue->reportedby));
@@ -1297,6 +1309,9 @@ function tracker_notify_submission($issue, &$cm, $tracker = null) {
         }
     }
 }
+
+
+
 
 /**
  * sends required notifications by the watchers when first submit
